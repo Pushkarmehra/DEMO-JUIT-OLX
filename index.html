@@ -248,7 +248,7 @@
             constructor() {
                 this.products = [];
                 this.filteredProducts = [];
-                this.useLocalStorage = true; // Use local storage instead of GitHub
+                this.dataFileName = 'juit_olx_products.json';
                 
                 this.init();
             }
@@ -257,6 +257,24 @@
                 this.setupEventListeners();
                 this.setupAnimations();
                 await this.loadProducts();
+                this.setupFileHandlers();
+            }
+
+            setupFileHandlers() {
+                // Add export/import buttons to header
+                const nav = document.querySelector('nav');
+                const exportBtn = document.createElement('button');
+                exportBtn.innerHTML = 'EXPORT DATA';
+                exportBtn.className = 'px-4 py-2 text-sm font-medium text-white hover:text-yellow-400 transition-colors duration-200';
+                exportBtn.onclick = () => this.exportData();
+                
+                const importBtn = document.createElement('button');
+                importBtn.innerHTML = 'IMPORT DATA';
+                importBtn.className = 'px-4 py-2 text-sm font-medium text-white hover:text-orange-400 transition-colors duration-200';
+                importBtn.onclick = () => this.showImportModal();
+                
+                nav.insertBefore(exportBtn, nav.lastElementChild);
+                nav.insertBefore(importBtn, nav.lastElementChild);
             }
 
             setupEventListeners() {
@@ -344,91 +362,296 @@
                 emptyState.classList.add('hidden');
 
                 try {
-                    // Load from memory storage (since we can't use localStorage)
+                    // Try to load from memory first (for current session)
                     if (this.memoryProducts && this.memoryProducts.length > 0) {
                         this.products = this.memoryProducts;
                         this.filteredProducts = [...this.products];
                         this.displayProducts();
-                    } else {
-                        // Start with default demo products
-                        this.products = [
-                            {
-                                id: 1,
-                                name: "Gaming Laptop RTX 3060",
-                                price: 85000,
-                                seller: "Alex Kumar",
-                                whatsapp: "919876543210",
-                                condition: "Like New",
-                                description: "High-performance gaming laptop with RTX 3060 graphics card, perfect for gaming and development work.",
-                                imagePath: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=300&fit=crop",
-                                dateAdded: new Date().toISOString()
-                            },
-                            {
-                                id: 2,
-                                name: "Study Table with Storage",
-                                price: 4500,
-                                seller: "Priya Singh",
-                                whatsapp: "919876543211",
-                                condition: "Good",
-                                description: "Wooden study desk with multiple drawers, perfect for dorm rooms and study spaces.",
-                                imagePath: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
-                                dateAdded: new Date().toISOString()
-                            },
-                            {
-                                id: 3,
-                                name: "Mountain Bike Trek",
-                                price: 25000,
-                                seller: "Rahul Sharma",
-                                whatsapp: "919876543212",
-                                condition: "Excellent",
-                                description: "Trek mountain bike in excellent condition, perfect for campus rides and weekend adventures.",
-                                imagePath: "https://images.unsplash.com/photo-1544191696-15693072ce6b?w=500&h=300&fit=crop",
-                                dateAdded: new Date().toISOString()
-                            },
-                            {
-                                id: 4,
-                                name: "iPhone 13 Pro Max",
-                                price: 95000,
-                                seller: "Ankit Verma",
-                                whatsapp: "919876543213",
-                                condition: "Excellent",
-                                description: "iPhone 13 Pro Max 256GB in excellent condition with original box and accessories.",
-                                imagePath: "https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=500&h=300&fit=crop",
-                                dateAdded: new Date().toISOString()
-                            },
-                            {
-                                id: 5,
-                                name: "Engineering Textbooks Set",
-                                price: 3500,
-                                seller: "Meera Gupta",
-                                whatsapp: "919876543214",
-                                condition: "Good",
-                                description: "Complete set of engineering textbooks for CSE 2nd year. All books in good condition.",
-                                imagePath: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=300&fit=crop",
-                                dateAdded: new Date().toISOString()
-                            },
-                            {
-                                id: 6,
-                                name: "Bluetooth Headphones",
-                                price: 2500,
-                                seller: "Rohit Jain",
-                                whatsapp: "919876543215",
-                                condition: "Like New",
-                                description: "Sony WH-CH720N wireless noise canceling headphones. Barely used, excellent sound quality.",
-                                imagePath: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop",
-                                dateAdded: new Date().toISOString()
-                            }
-                        ];
-                        this.filteredProducts = [...this.products];
-                        this.memoryProducts = [...this.products];
-                        this.displayProducts();
+                        loadingIndicator.classList.add('hidden');
+                        return;
                     }
+
+                    // Check for auto-saved data in sessionStorage
+                    const autoSavedData = sessionStorage.getItem('juit_olx_autosave');
+                    if (autoSavedData) {
+                        const savedProducts = JSON.parse(autoSavedData);
+                        if (savedProducts.length > 0) {
+                            this.products = savedProducts;
+                            this.filteredProducts = [...this.products];
+                            this.memoryProducts = [...this.products];
+                            this.displayProducts();
+                            this.showNotification('Loaded auto-saved data', 'success');
+                            loadingIndicator.classList.add('hidden');
+                            return;
+                        }
+                    }
+
+                    // Default demo products if no saved data
+                    this.products = [
+                        {
+                            id: 1,
+                            name: "Gaming Laptop RTX 3060",
+                            price: 85000,
+                            seller: "Alex Kumar",
+                            whatsapp: "919876543210",
+                            condition: "Like New",
+                            description: "High-performance gaming laptop with RTX 3060 graphics card, perfect for gaming and development work.",
+                            imagePath: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=300&fit=crop",
+                            dateAdded: new Date().toISOString()
+                        },
+                        {
+                            id: 2,
+                            name: "Study Table with Storage",
+                            price: 4500,
+                            seller: "Priya Singh",
+                            whatsapp: "919876543211",
+                            condition: "Good",
+                            description: "Wooden study desk with multiple drawers, perfect for dorm rooms and study spaces.",
+                            imagePath: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
+                            dateAdded: new Date().toISOString()
+                        },
+                        {
+                            id: 3,
+                            name: "Mountain Bike Trek",
+                            price: 25000,
+                            seller: "Rahul Sharma",
+                            whatsapp: "919876543212",
+                            condition: "Excellent",
+                            description: "Trek mountain bike in excellent condition, perfect for campus rides and weekend adventures.",
+                            imagePath: "https://images.unsplash.com/photo-1544191696-15693072ce6b?w=500&h=300&fit=crop",
+                            dateAdded: new Date().toISOString()
+                        },
+                        {
+                            id: 4,
+                            name: "iPhone 13 Pro Max",
+                            price: 95000,
+                            seller: "Ankit Verma",
+                            whatsapp: "919876543213",
+                            condition: "Excellent",
+                            description: "iPhone 13 Pro Max 256GB in excellent condition with original box and accessories.",
+                            imagePath: "https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=500&h=300&fit=crop",
+                            dateAdded: new Date().toISOString()
+                        },
+                        {
+                            id: 5,
+                            name: "Engineering Textbooks Set",
+                            price: 3500,
+                            seller: "Meera Gupta",
+                            whatsapp: "919876543214",
+                            condition: "Good",
+                            description: "Complete set of engineering textbooks for CSE 2nd year. All books in good condition.",
+                            imagePath: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=300&fit=crop",
+                            dateAdded: new Date().toISOString()
+                        },
+                        {
+                            id: 6,
+                            name: "Bluetooth Headphones",
+                            price: 2500,
+                            seller: "Rohit Jain",
+                            whatsapp: "919876543215",
+                            condition: "Like New",
+                            description: "Sony WH-CH720N wireless noise canceling headphones. Barely used, excellent sound quality.",
+                            imagePath: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop",
+                            dateAdded: new Date().toISOString()
+                        }
+                    ];
+                    this.filteredProducts = [...this.products];
+                    this.memoryProducts = [...this.products];
+                    this.autoSaveData();
+                    this.displayProducts();
                 } catch (error) {
                     console.error('Error loading products:', error);
                     this.showNotification('Error loading products', 'error');
                 }
                 
                 loadingIndicator.classList.add('hidden');
+            }
+
+            autoSaveData() {
+                try {
+                    sessionStorage.setItem('juit_olx_autosave', JSON.stringify(this.products));
+                } catch (error) {
+                    console.warn('Auto-save failed:', error);
+                }
+            }
+
+            exportData() {
+                try {
+                    const dataToExport = {
+                        exportDate: new Date().toISOString(),
+                        version: "1.0",
+                        products: this.products
+                    };
+                    
+                    const dataStr = JSON.stringify(dataToExport, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `juit_olx_data_${new Date().toISOString().split('T')[0]}.json`;
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    URL.revokeObjectURL(url);
+                    
+                    this.showNotification('Data exported successfully!', 'success');
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showNotification('Failed to export data', 'error');
+                }
+            }
+
+            showImportModal() {
+                const existingModal = document.querySelector('.import-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                const modal = document.createElement('div');
+                modal.className = 'import-modal fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300';
+                modal.innerHTML = `
+                    <div class="modal-content glass bg-dark-800/90 rounded-2xl w-full max-w-md transform scale-95 transition-transform duration-300">
+                        <div class="bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-t-2xl">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-bold text-white">Import Data</h2>
+                                <button class="close-import-modal w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors duration-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6 space-y-4">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-white">Select JSON file to import:</label>
+                                <input type="file" id="importFileInput" accept=".json" 
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700">
+                            </div>
+                            
+                            <div class="bg-yellow-900/50 border border-yellow-600 rounded-lg p-4">
+                                <div class="flex">
+                                    <svg class="w-5 h-5 text-yellow-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm text-yellow-300 font-medium">Warning</p>
+                                        <p class="text-sm text-yellow-200">This will replace all current products with the imported data.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-4 pt-4">
+                                <button class="cancel-import flex-1 px-6 py-3 bg-dark-600 hover:bg-dark-500 text-white font-medium rounded-lg transition-colors duration-200">
+                                    Cancel
+                                </button>
+                                <button class="import-btn flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium py-3 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    Import Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                
+                // Show modal with animation
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.classList.add('opacity-100');
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                    modal.querySelector('.modal-content').classList.add('scale-100');
+                }, 10);
+                
+                this.setupImportModalEvents(modal);
+            }
+
+            setupImportModalEvents(modal) {
+                const closeBtn = modal.querySelector('.close-import-modal');
+                const cancelBtn = modal.querySelector('.cancel-import');
+                const importBtn = modal.querySelector('.import-btn');
+                const fileInput = modal.querySelector('#importFileInput');
+
+                closeBtn.addEventListener('click', () => this.closeImportModal(modal));
+                cancelBtn.addEventListener('click', () => this.closeImportModal(modal));
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.closeImportModal(modal);
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    importBtn.disabled = !file;
+                });
+
+                importBtn.addEventListener('click', () => {
+                    this.handleImport(fileInput.files[0], modal);
+                });
+            }
+
+            async handleImport(file, modal) {
+                if (!file) {
+                    this.showNotification('Please select a file', 'error');
+                    return;
+                }
+
+                try {
+                    const fileContent = await this.readFileAsText(file);
+                    const importedData = JSON.parse(fileContent);
+                    
+                    // Validate the imported data structure
+                    if (!importedData.products || !Array.isArray(importedData.products)) {
+                        throw new Error('Invalid file format. Expected JSON with products array.');
+                    }
+                    
+                    // Validate each product has required fields
+                    const requiredFields = ['id', 'name', 'price', 'seller', 'whatsapp', 'condition', 'description'];
+                    for (const product of importedData.products) {
+                        for (const field of requiredFields) {
+                            if (!product.hasOwnProperty(field)) {
+                                throw new Error(`Invalid product data: missing field '${field}'`);
+                            }
+                        }
+                    }
+                    
+                    // Import the data
+                    this.products = importedData.products;
+                    this.filteredProducts = [...this.products];
+                    this.memoryProducts = [...this.products];
+                    this.autoSaveData();
+                    
+                    // Update display
+                    this.displayProducts();
+                    
+                    // Close modal
+                    this.closeImportModal(modal);
+                    
+                    this.showNotification(`Successfully imported ${this.products.length} products!`, 'success');
+                    
+                } catch (error) {
+                    console.error('Import error:', error);
+                    this.showNotification(`Import failed: ${error.message}`, 'error');
+                }
+            }
+
+            readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+
+            closeImportModal(modal) {
+                modal.classList.add('opacity-0');
+                modal.classList.remove('opacity-100');
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                modal.querySelector('.modal-content').classList.remove('scale-100');
+                setTimeout(() => modal.remove(), 300);
             }
 
             displayProducts() {
@@ -721,10 +944,11 @@
                         dateAdded: new Date().toISOString()
                     };
 
-                    // Save to memory storage
+                    // Save to memory and auto-save
                     this.products.push(productData);
                     this.filteredProducts = [...this.products];
-                    this.memoryProducts = [...this.products]; // Store in memory
+                    this.memoryProducts = [...this.products];
+                    this.autoSaveData(); // Auto-save to session storage
                     
                     // Update display
                     this.displayProducts();
@@ -733,7 +957,7 @@
                     this.closeSellModal(modal);
                     
                     // Show success message
-                    this.showNotification('Product published successfully!', 'success');
+                    this.showNotification('Product published successfully! Don\'t forget to export your data.', 'success');
                     
                 } catch (error) {
                     console.error('Error publishing product:', error);
