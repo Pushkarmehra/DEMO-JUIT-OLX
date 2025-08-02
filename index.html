@@ -328,18 +328,20 @@
     </button>
 
     <script>
-const apiKey = process.env['API-KEY'];
+        // GitHub configuration - replace with your actual values
+        const apiKey = 'YOUR_GITHUB_TOKEN'; // Replace with your GitHub token
 
-class JUITOLXApp {
-    constructor() {
-        this.products = [];
-        this.filteredProducts = [];
-        this.githubConfig = {
-            owner: 'Pushkarmehra',
-            repo: 'DEMO-JUIT-OLX',
-            token: apiKey,
-            branch: 'main'
-        };  
+        class JUITOLXApp {
+            constructor() {
+                this.products = [];
+                this.filteredProducts = [];
+                this.githubConfig = {
+                    owner: 'Pushkarmehra',
+                    repo: 'DEMO-JUIT-OLX',
+                    token: apiKey,
+                    branch: 'main'
+                };
+                
                 this.init();
             }
 
