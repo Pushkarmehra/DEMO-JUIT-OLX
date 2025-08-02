@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JUIT OLX - Buy & Sell (GitHub Storage)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s ease-out',
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'slide-in': 'slideIn 0.3s ease-out',
+                        'pulse-slow': 'pulse 3s infinite'
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateX(100%)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .glass {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .loading-spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .animation-delay-200 { animation-delay: 0.2s; }
+        .animation-delay-400 { animation-delay: 0.4s; }
+    </style>
+</head>
+<body class="dark bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 min-h-screen text-white">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass bg-dark-800/20 border-b border-dark-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-shadow">
+                        <span class="text-blue-400 hover:scale-110 inline-block transition-transform cursor-pointer">J</span>
+                        <span class="text-purple-400 hover:scale-110 inline-block transition-transform cursor-pointer">U</span>
+                        <span class="text-green-400 hover:scale-110 inline-block transition-transform cursor-pointer">I</span>
+                        <span class="text-yellow-400 hover:scale-110 inline-block transition-transform cursor-pointer">T</span>
+                        <span class="text-white ml-2">OLX</span>
+                    </h1>
+                </div>
+                
+                <nav class="flex space-x-4">
+                    <button onclick="juitApp.showAllProducts()" 
+                            class="px-4 py-2 text-sm font-medium text-white hover:text-blue-400 transition-colors duration-200">
+                        HOME
+                    </button>
+                    <button onclick="juitApp.refreshProducts()" 
+                            class="px-4 py-2 text-sm font-medium text-white hover:text-green-400 transition-colors duration-200">
+                        REFRESH
+                    </button>
+                    <button onclick="juitApp.showConfigModal()" 
+                            class="px-4 py-2 text-sm font-medium text-white hover:text-orange-400 transition-colors duration-200">
+                        CONFIG
+                    </button>
+                    <button onclick="juitApp.showSellModal()" 
+                            class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-6 py-2 rounded-lg text-sm font-medium text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+                        SELL
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- GitHub Status Bar -->
+    <div id="githubStatus" class="bg-dark-800/50 border-b border-dark-700/50 px-4 py-2">
+        <div class="max-w-7xl mx-auto flex items-center justify-between text-sm">
+            <div class="flex items-center space-x-4">
+                <span class="text-dark-400">GitHub Status:</span>
+                <span id="connectionStatus" class="px-2 py-1 rounded text-xs bg-gray-600 text-white">Not Connected</span>
+                <span id="repoInfo" class="text-dark-400"></span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="lastSync" class="text-dark-400 text-xs"></span>
+                <div id="syncIndicator" class="w-2 h-2 bg-gray-500 rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Hero Section -->
+        <div class="text-center mb-16">
+            <h2 class="text-5xl font-bold mb-6 text-shadow animate-fade-in-up">
+                Buy & Sell with JUIT Community
+            </h2>
+            <p class="text-xl text-dark-300 mb-12 animate-fade-in-up animation-delay-200">
+                Your campus marketplace with GitHub storage
+            </p>
+            
+            <!-- Search Bar -->
+            <div class="max-w-2xl mx-auto relative animate-fade-in-up animation-delay-400">
+                <input type="text" 
+                       id="searchInput" 
+                       placeholder="Search for products..."
+                       onkeyup="juitApp.handleSearch(event)"
+                       class="w-full px-6 py-4 pr-12 text-lg bg-dark-800/50 border border-dark-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none backdrop-blur-sm transition-all duration-200">
+                <button onclick="juitApp.performSearch()" 
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-16 hidden">
+            <div class="inline-flex items-center space-x-3">
+                <div class="loading-spinner"></div>
+                <span class="text-lg">Loading products...</span>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="productContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <!-- Products will be dynamically loaded here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-20 hidden">
+            <div class="text-6xl text-dark-600 mb-6">
+                <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-semibold text-dark-300 mb-4">No Products Found</h3>
+            <p class="text-dark-400 mb-8">Configure GitHub and start listing products!</p>
+            <button onclick="juitApp.showConfigModal()" 
+                    class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 px-8 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 mr-4">
+                Setup GitHub
+            </button>
+            <button onclick="juitApp.showSellModal()" 
+                    class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+                List Product
+            </button>
+        </div>
+    </main>
+
+    <script>
+        class JUITOLXApp {
+            constructor() {
+                this.products = [];
+                this.filteredProducts = [];
+                this.githubConfig = this.loadGitHubConfig();
+                this.init();
+            }
+
+            loadGitHubConfig() {
+                // Try to load from sessionStorage first
+                const saved = sessionStorage.getItem('juit_github_config');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+                
+                // Default configuration (users need to update this)
+                return {
+                    owner: 'pPushkarmehra', // Your GitHub username
+                    repo: 'DEMO-JUIT-OLX ', // Your repository name  
+                    token: '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', // Your Personal Access Token
+                    branch: 'main',
+                    dataFile: 'products.json'
+                };
+            }
+
+            saveGitHubConfig() {
+                sessionStorage.setItem('juit_github_config', JSON.stringify(this.githubConfig));
+            }
+
+            async init() {
+                this.setupEventListeners();
+                this.setupAnimations();
+                this.updateGitHubStatus();
+                await this.loadProducts();
+            }
+
+            updateGitHubStatus() {
+                const statusEl = document.getElementById('connectionStatus');
+                const repoEl = document.getElementById('repoInfo');
+                const syncEl = document.getElementById('syncIndicator');
+                
+                if (this.isGitHubConfigured()) {
+                    statusEl.textContent = 'Connected';
+                    statusEl.className = 'px-2 py-1 rounded text-xs bg-green-600 text-white';
+                    repoEl.textContent = `${this.githubConfig.owner}/${this.githubConfig.repo}`;
+                    syncEl.className = 'w-2 h-2 bg-green-500 rounded-full';
+                } else {
+                    statusEl.textContent = 'Not Configured';
+                    statusEl.className = 'px-2 py-1 rounded text-xs bg-red-600 text-white';
+                    repoEl.textContent = 'Click CONFIG to setup GitHub';
+                    syncEl.className = 'w-2 h-2 bg-red-500 rounded-full';
+                }
+            }
+
+            isGitHubConfigured() {
+                return this.githubConfig.owner && 
+                       this.githubConfig.repo && 
+                       this.githubConfig.token;
+            }
+
+            setupEventListeners() {
+                const logoSpans = document.querySelectorAll('h1 span');
+                logoSpans.forEach((span) => {
+                    span.addEventListener('mouseenter', () => {
+                        span.style.transform = 'scale(1.2) rotate(10deg)';
+                    });
+                    span.addEventListener('mouseleave', () => {
+                        span.style.transform = 'scale(1) rotate(0deg)';
+                    });
+                });
+
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(() => {
+                        this.performSearch();
+                    }, 300);
+                });
+            }
+
+            setupAnimations() {
+                window.addEventListener('scroll', this.handleScroll.bind(this));
+                
+                window.addEventListener('scroll', () => {
+                    // Scroll to top button logic can be added here
+                });
+            }
+
+            handleScroll() {
+                const products = document.querySelectorAll('.product-card');
+                products.forEach(product => {
+                    const rect = product.getBoundingClientRect();
+                    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                    
+                    if (isVisible && !product.classList.contains('animated')) {
+                        product.classList.add('animated', 'animate-fade-in-up');
+                    }
+                });
+            }
+
+            handleSearch(event) {
+                if (event.key === 'Enter') {
+                    this.performSearch();
+                }
+            }
+
+            performSearch() {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    this.filteredProducts = [...this.products];
+                } else {
+                    this.filteredProducts = this.products.filter(product => 
+                        product.name.toLowerCase().includes(searchTerm) ||
+                        product.description.toLowerCase().includes(searchTerm) ||
+                        product.seller.toLowerCase().includes(searchTerm) ||
+                        product.condition.toLowerCase().includes(searchTerm)
+                    );
+                }
+                
+                this.displayProducts();
+            }
+
+            showConfigModal() {
+                const existingModal = document.querySelector('.config-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                const modal = document.createElement('div');
+                modal.className = 'config-modal fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300';
+                modal.innerHTML = `
+                    <div class="modal-content glass bg-dark-800/90 rounded-2xl w-full max-w-2xl transform scale-95 transition-transform duration-300">
+                        <div class="bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-t-2xl">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-2xl font-bold text-white">GitHub Configuration</h2>
+                                <button class="close-config-modal w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors duration-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <form id="configForm" class="p-6 space-y-6">
+                            <div class="bg-blue-900/50 border border-blue-600 rounded-lg p-4 mb-6">
+                                <h3 class="font-semibold text-blue-300 mb-2">Setup Instructions:</h3>
+                                <ol class="text-sm text-blue-200 space-y-1 list-decimal list-inside">
+                                    <li>Create a new GitHub repository (e.g., "juit-olx-data")</li>
+                                    <li>Go to GitHub Settings → Developer settings → Personal access tokens</li>
+                                    <li>Generate a new token with "repo" permissions</li>
+                                    <li>Fill in the details below</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="githubOwner" class="block text-sm font-medium text-white">GitHub Username *</label>
+                                <input type="text" id="githubOwner" value="${this.githubConfig.owner}" required 
+                                       placeholder="your-github-username"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="githubRepo" class="block text-sm font-medium text-white">Repository Name *</label>
+                                <input type="text" id="githubRepo" value="${this.githubConfig.repo}" required 
+                                       placeholder="juit-olx-data"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="githubToken" class="block text-sm font-medium text-white">Personal Access Token *</label>
+                                <input type="password" id="githubToken" value="${this.githubConfig.token}" required 
+                                       placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                                <p class="text-xs text-dark-400">Token needs 'repo' permissions. Keep this secret!</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label for="githubBranch" class="block text-sm font-medium text-white">Branch</label>
+                                    <input type="text" id="githubBranch" value="${this.githubConfig.branch}" 
+                                           placeholder="main"
+                                           class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <label for="githubDataFile" class="block text-sm font-medium text-white">Data File</label>
+                                    <input type="text" id="githubDataFile" value="${this.githubConfig.dataFile}" 
+                                           placeholder="products.json"
+                                           class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-4 pt-6">
+                                <button type="button" class="cancel-config flex-1 px-6 py-3 bg-dark-600 hover:bg-dark-500 text-white font-medium rounded-lg transition-colors duration-200">
+                                    Cancel
+                                </button>
+                                <button type="button" id="testConnection" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200">
+                                    Test Connection
+                                </button>
+                                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                                    Save Config
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.classList.add('opacity-100');
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                    modal.querySelector('.modal-content').classList.add('scale-100');
+                }, 10);
+                
+                this.setupConfigModalEvents(modal);
+            }
+
+            setupConfigModalEvents(modal) {
+                const closeBtn = modal.querySelector('.close-config-modal');
+                const cancelBtn = modal.querySelector('.cancel-config');
+                const form = modal.querySelector('#configForm');
+                const testBtn = modal.querySelector('#testConnection');
+
+                closeBtn.addEventListener('click', () => this.closeConfigModal(modal));
+                cancelBtn.addEventListener('click', () => this.closeConfigModal(modal));
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.closeConfigModal(modal);
+                });
+
+                testBtn.addEventListener('click', () => this.testGitHubConnection(modal));
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveGitHubConfiguration(form, modal);
+                });
+            }
+
+            async testGitHubConnection(modal) {
+                const testBtn = modal.querySelector('#testConnection');
+                const originalText = testBtn.textContent;
+                
+                testBtn.disabled = true;
+                testBtn.textContent = 'Testing...';
+                
+                try {
+                    const tempConfig = {
+                        owner: modal.querySelector('#githubOwner').value,
+                        repo: modal.querySelector('#githubRepo').value,
+                        token: modal.querySelector('#githubToken').value,
+                        branch: modal.querySelector('#githubBranch').value || 'main'
+                    };
+                    
+                    const response = await fetch(`https://api.github.com/repos/${tempConfig.owner}/${tempConfig.repo}`, {
+                        headers: {
+                            'Authorization': `token ${tempConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        this.showNotification('✅ GitHub connection successful!', 'success');
+                        testBtn.textContent = '✅ Connected';
+                        testBtn.className = 'px-6 py-3 bg-green-600 text-white font-medium rounded-lg';
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    this.showNotification(`❌ Connection failed: ${error.message}`, 'error');
+                    testBtn.textContent = '❌ Failed';
+                    testBtn.className = 'px-6 py-3 bg-red-600 text-white font-medium rounded-lg';
+                } finally {
+                    testBtn.disabled = false;
+                    setTimeout(() => {
+                        testBtn.textContent = originalText;
+                        testBtn.className = 'px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200';
+                    }, 3000);
+                }
+            }
+
+            saveGitHubConfiguration(form, modal) {
+                this.githubConfig = {
+                    owner: form.querySelector('#githubOwner').value,
+                    repo: form.querySelector('#githubRepo').value,
+                    token: form.querySelector('#githubToken').value,
+                    branch: form.querySelector('#githubBranch').value || 'main',
+                    dataFile: form.querySelector('#githubDataFile').value || 'products.json'
+                };
+                
+                this.saveGitHubConfig();
+                this.updateGitHubStatus();
+                this.closeConfigModal(modal);
+                this.showNotification('GitHub configuration saved!', 'success');
+            }
+
+            closeConfigModal(modal) {
+                modal.classList.add('opacity-0');
+                modal.classList.remove('opacity-100');
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                modal.querySelector('.modal-content').classList.remove('scale-100');
+                setTimeout(() => modal.remove(), 300);
+            }
+
+            async loadProducts() {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const productContainer = document.getElementById('productContainer');
+                const emptyState = document.getElementById('emptyState');
+                
+                loadingIndicator.classList.remove('hidden');
+                productContainer.innerHTML = '';
+                emptyState.classList.add('hidden');
+
+                try {
+                    if (this.isGitHubConfigured()) {
+                        await this.loadProductsFromGitHub();
+                    } else {
+                        // Load demo products if GitHub not configured
+                        this.products = this.getDefaultProducts();
+                        this.filteredProducts = [...this.products];
+                        this.displayProducts();
+                    }
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                    this.showNotification(`Failed to load products: ${error.message}`, 'error');
+                    // Fallback to demo products
+                    this.products = this.getDefaultProducts();
+                    this.filteredProducts = [...this.products];
+                    this.displayProducts();
+                }
+                
+                loadingIndicator.classList.add('hidden');
+                this.updateLastSync();
+            }
+
+            async loadProductsFromGitHub() {
+                try {
+                    const productsFile = await this.getFileFromGitHub(this.githubConfig.dataFile);
+                    const products = JSON.parse(atob(productsFile.content));
+                    this.products = products;
+                    this.filteredProducts = [...products];
+                    
+                    if (products.length === 0) {
+                        document.getElementById('emptyState').classList.remove('hidden');
+                    } else {
+                        this.displayProducts();
+                    }
+                } catch (error) {
+                    if (error.message.includes('404')) {
+                        // File doesn't exist yet, start with empty array
+                        this.products = [];
+                        this.filteredProducts = [];
+                        document.getElementById('emptyState').classList.remove('hidden');
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
+            getDefaultProducts() {
+                return [
+                    {
+                        id: 1,
+                        name: "Gaming Laptop RTX 3060",
+                        price: 85000,
+                        seller: "Alex Kumar",
+                        whatsapp: "919876543210",
+                        condition: "Like New",
+                        description: "High-performance gaming laptop with RTX 3060 graphics card, perfect for gaming and development work.",
+                        imagePath: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=300&fit=crop",
+                        dateAdded: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        name: "Study Table with Storage",
+                        price: 4500,
+                        seller: "Priya Singh",
+                        whatsapp: "919876543211",
+                        condition: "Good",
+                        description: "Wooden study desk with multiple drawers, perfect for dorm rooms and study spaces.",
+                        imagePath: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
+                        dateAdded: new Date().toISOString()
+                    },
+                    {
+                        id: 3,
+                        name: "Mountain Bike Trek",
+                        price: 25000,
+                        seller: "Rahul Sharma",
+                        whatsapp: "919876543212",
+                        condition: "Excellent",
+                        description: "Trek mountain bike in excellent condition, perfect for campus rides and weekend adventures.",
+                        imagePath: "https://images.unsplash.com/photo-1544191696-15693072ce6b?w=500&h=300&fit=crop",
+                        dateAdded: new Date().toISOString()
+                    }
+                ];
+            }
+
+            async getFileFromGitHub(path) {
+                const response = await fetch(`https://api.github.com/repos/${this.githubConfig.owner}/${this.githubConfig.repo}/contents/${path}`, {
+                    headers: {
+                        'Authorization': `token ${this.githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+                }
+                
+                return await response.json();
+            }
+
+            async saveFileToGitHub(path, content, message) {
+                let sha = null;
+                
+                try {
+                    const existingFile = await this.getFileFromGitHub(path);
+                    sha = existingFile.sha;
+                } catch (e) {
+                    // File doesn't exist, no SHA needed
+                }
+                
+                const body = {
+                    message: message,
+                    content: content,
+                    branch: this.githubConfig.branch
+                };
+                
+                if (sha) {
+                    body.sha = sha;
+                }
+                
+                const response = await fetch(`https://api.github.com/repos/${this.githubConfig.owner}/${this.githubConfig.repo}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${this.githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`GitHub API error: ${response.status} - ${errorData.message}`);
+                }
+                
+                return await response.json();
+            }
+
+            updateLastSync() {
+                const lastSyncEl = document.getElementById('lastSync');
+                lastSyncEl.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+            }
+
+            displayProducts() {
+                const container = document.getElementById('productContainer');
+                const emptyState = document.getElementById('emptyState');
+                
+                container.innerHTML = '';
+                
+                if (this.filteredProducts.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                
+                emptyState.classList.add('hidden');
+                
+                this.filteredProducts.forEach((product, index) => {
+                    const productElement = this.createProductElement(product, index);
+                    container.appendChild(productElement);
+                    
+                    setTimeout(() => {
+                        productElement.classList.add('animate-fade-in-up');
+                    }, index * 100);
+                });
+            }
+
+            createProductElement(product, index) {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product-card glass bg-dark-800/30 rounded-xl overflow-hidden shadow-xl hover-lift border border-dark-600/30';
+                
+                productDiv.innerHTML = `
+                    <div class="relative h-48 bg-cover bg-center" style="background-image: url('${product.imagePath}')">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark-900/50 to-transparent"></div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-2 text-white">${product.name}</h3>
+                        <p class="text-dark-300 text-sm mb-3">Seller: ${product.seller}</p>
+                        
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="px-3 py-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-xs font-medium rounded-full">
+                                ${product.condition}
+                            </span>
+                            <span class="text-2xl font-bold text-green-400">₹${product.price.toLocaleString()}</span>
+                        </div>
+                        
+                        <p class="text-dark-300 text-sm mb-6 line-clamp-2">${product.description}</p>
+                        
+                        <button onclick="juitApp.openWhatsAppChat(${index})" 
+                                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                            Chat with Seller
+                        </button>
+                    </div>
+                `;
+                
+                return productDiv;
+            }
+
+            openWhatsAppChat(productIndex) {
+                const product = this.filteredProducts[productIndex];
+                
+                const message = `Hi! I'm interested in your ${product.name} listed for ₹${product.price.toLocaleString()}. Is it still available?`;
+                const whatsappUrl = `https://wa.me/${product.whatsapp}?text=${encodeURIComponent(message)}`;
+                
+                window.open(whatsappUrl, '_blank');
+                this.showNotification('Opening WhatsApp...', 'success');
+            }
+
+            showSellModal() {
+                if (!this.isGitHubConfigured()) {
+                    this.showNotification('Please configure GitHub first!', 'error');
+                    this.showConfigModal();
+                    return;
+                }
+
+                const existingModal = document.querySelector('.sell-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                const modal = document.createElement('div');
+                modal.className = 'sell-modal fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300';
+                modal.innerHTML = `
+                    <div class="modal-content glass bg-dark-800/90 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-300">
+                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-t-2xl">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-2xl font-bold text-white">Sell Your Product</h2>
+                                <button class="close-sell-modal w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors duration-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <form id="sellForm" class="p-6 space-y-6">
+                            <div class="space-y-2">
+                                <label for="productName" class="block text-sm font-medium text-white">Product Name *</label>
+                                <input type="text" id="productName" name="productName" required 
+                                       placeholder="e.g., Gaming Laptop, Study Table, Textbooks..."
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="productPrice" class="block text-sm font-medium text-white">Price (in ₹) *</label>
+                                <input type="number" id="productPrice" name="productPrice" required 
+                                       placeholder="Enter price" min="1" step="1"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="sellerName" class="block text-sm font-medium text-white">Your Name *</label>
+                                <input type="text" id="sellerName" name="sellerName" required 
+                                       placeholder="Your full name"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="whatsappNumber" class="block text-sm font-medium text-white">WhatsApp Number *</label>
+                                <input type="tel" id="whatsappNumber" name="whatsappNumber" required 
+                                       placeholder="e.g., 919876543210 (with country code)"
+                                       pattern="[0-9]{12}" maxlength="12"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                                <p class="text-xs text-dark-400">Include country code (e.g., 91 for India). Format: 919876543210</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="productCondition" class="block text-sm font-medium text-white">Condition *</label>
+                                <select id="productCondition" name="productCondition" required
+                                        class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white">
+                                    <option value="">Select condition</option>
+                                    <option value="Brand New">Brand New</option>
+                                    <option value="Like New">Like New</option>
+                                    <option value="Excellent">Excellent</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Fair">Fair</option>
+                                </select>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="productDescription" class="block text-sm font-medium text-white">Description *</label>
+                                <textarea id="productDescription" name="productDescription" required
+                                          placeholder="Describe your product in detail..." rows="4"
+                                          class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400 resize-none"></textarea>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="productImageUrl" class="block text-sm font-medium text-white">Product Image URL *</label>
+                                <input type="url" id="productImageUrl" name="productImageUrl" required
+                                       placeholder="Paste image URL (e.g., from Imgur, Unsplash, etc.)"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                                <p class="text-xs text-dark-400">Upload to Imgur or use direct image URLs</p>
+                                <div id="imagePreview" class="mt-4 p-4 border-2 border-dashed border-dark-600 rounded-lg text-center bg-dark-700/50">
+                                    <p class="text-dark-400">Paste image URL above to preview</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-4 pt-6">
+                                <button type="button" class="cancel-btn flex-1 px-6 py-3 bg-dark-600 hover:bg-dark-500 text-white font-medium rounded-lg transition-colors duration-200">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="submit-btn flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                                    <span class="btn-text">Publish to GitHub</span>
+                                    <span class="btn-loading hidden items-center space-x-2">
+                                        <div class="loading-spinner"></div>
+                                        <span>Publishing...</span>
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.classList.add('opacity-100');
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                    modal.querySelector('.modal-content').classList.add('scale-100');
+                }, 10);
+                
+                this.setupSellModalEvents(modal);
+            }
+
+            setupSellModalEvents(modal) {
+                const closeBtn = modal.querySelector('.close-sell-modal');
+                const cancelBtn = modal.querySelector('.cancel-btn');
+                const form = modal.querySelector('#sellForm');
+                const imageUrlInput = modal.querySelector('#productImageUrl');
+                const imagePreview = modal.querySelector('#imagePreview');
+                const phoneInput = modal.querySelector('#whatsappNumber');
+
+                closeBtn.addEventListener('click', () => this.closeSellModal(modal));
+                cancelBtn.addEventListener('click', () => this.closeSellModal(modal));
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.closeSellModal(modal);
+                });
+
+                imageUrlInput.addEventListener('input', (e) => {
+                    this.handleImageUrlPreview(e.target.value, imagePreview);
+                });
+
+                phoneInput.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.replace(/\D/g, '');
+                    if (e.target.value.length > 12) {
+                        e.target.value = e.target.value.slice(0, 12);
+                    }
+                });
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleSellFormSubmit(form, modal);
+                });
+
+                modal.querySelector('#productName').focus();
+            }
+
+            handleImageUrlPreview(url, previewContainer) {
+                if (url && this.isValidImageUrl(url)) {
+                    previewContainer.innerHTML = `
+                        <img src="${url}" alt="Preview" class="max-w-full max-h-48 mx-auto rounded-lg shadow-lg mb-2" 
+                             onerror="this.parentElement.innerHTML='<p class=\\'text-red-400\\'>Invalid image URL</p>'">
+                        <p class="text-dark-300 text-sm">Image preview</p>
+                    `;
+                } else if (url) {
+                    previewContainer.innerHTML = `<p class="text-yellow-400">Checking image URL...</p>`;
+                } else {
+                    previewContainer.innerHTML = `<p class="text-dark-400">Paste image URL above to preview</p>`;
+                }
+            }
+
+            isValidImageUrl(url) {
+                try {
+                    new URL(url);
+                    return /\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(url) || 
+                           url.includes('unsplash.com') || 
+                           url.includes('imgur.com') ||
+                           url.includes('images.');
+                } catch {
+                    return false;
+                }
+            }
+
+            async handleSellFormSubmit(form, modal) {
+                const submitBtn = form.querySelector('.submit-btn');
+                const btnText = submitBtn.querySelector('.btn-text');
+                const btnLoading = submitBtn.querySelector('.btn-loading');
+                
+                submitBtn.disabled = true;
+                btnText.classList.add('hidden');
+                btnLoading.classList.remove('hidden');
+                btnLoading.classList.add('flex');
+
+                try {
+                    const formData = new FormData(form);
+                    
+                    const phoneNumber = formData.get('whatsappNumber');
+                    if (phoneNumber.length < 10 || !/^\d+$/.test(phoneNumber)) {
+                        throw new Error('Please enter a valid phone number with country code');
+                    }
+
+                    const imageUrl = formData.get('productImageUrl');
+                    if (!this.isValidImageUrl(imageUrl)) {
+                        throw new Error('Please enter a valid image URL');
+                    }
+
+                    const productData = {
+                        id: Date.now(),
+                        name: formData.get('productName'),
+                        price: parseInt(formData.get('productPrice')),
+                        seller: formData.get('sellerName'),
+                        whatsapp: phoneNumber,
+                        condition: formData.get('productCondition'),
+                        description: formData.get('productDescription'),
+                        imagePath: imageUrl,
+                        dateAdded: new Date().toISOString()
+                    };
+
+                    await this.saveProductToGitHub(productData);
+                    
+                    this.products.push(productData);
+                    this.filteredProducts = [...this.products];
+                    this.displayProducts();
+                    this.closeSellModal(modal);
+                    this.updateLastSync();
+                    
+                    this.showNotification('Product published to GitHub successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('Error publishing product:', error);
+                    this.showNotification(`Error: ${error.message}`, 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    btnText.classList.remove('hidden');
+                    btnLoading.classList.add('hidden');
+                    btnLoading.classList.remove('flex');
+                }
+            }
+
+            async saveProductToGitHub(productData) {
+                try {
+                    let existingProducts = [];
+                    try {
+                        const productsFile = await this.getFileFromGitHub(this.githubConfig.dataFile);
+                        existingProducts = JSON.parse(atob(productsFile.content));
+                    } catch (e) {
+                        // File doesn't exist yet, start with empty array
+                    }
+                    
+                    existingProducts.push(productData);
+                    
+                    const productsJson = JSON.stringify(existingProducts, null, 2);
+                    await this.saveFileToGitHub(
+                        this.githubConfig.dataFile, 
+                        btoa(productsJson), 
+                        `Add product: ${productData.name}`
+                    );
+                    
+                } catch (error) {
+                    console.error('GitHub save error:', error);
+                    throw new Error(`Failed to save to GitHub: ${error.message}`);
+                }
+            }
+
+            closeSellModal(modal) {
+                modal.classList.add('opacity-0');
+                modal.classList.remove('opacity-100');
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                modal.querySelector('.modal-content').classList.remove('scale-100');
+                setTimeout(() => modal.remove(), 300);
+            }
+
+            showNotification(message, type = 'info') {
+                const existingNotifications = document.querySelectorAll('.notification');
+                existingNotifications.forEach(notif => notif.remove());
+
+                const notification = document.createElement('div');
+                notification.className = `notification fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 max-w-sm animate-slide-in`;
+                
+                if (type === 'success') {
+                    notification.classList.add('bg-green-600', 'text-white');
+                } else if (type === 'error') {
+                    notification.classList.add('bg-red-600', 'text-white');
+                } else {
+                    notification.classList.add('bg-blue-600', 'text-white');
+                }
+                
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease forwards';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, 4000);
+            }
+
+            async refreshProducts() {
+                this.showNotification('Refreshing from GitHub...', 'info');
+                await this.loadProducts();
+                this.showNotification('Products refreshed from GitHub!', 'success');
+            }
+
+            showAllProducts() {
+                document.getElementById('searchInput').value = '';
+                this.filteredProducts = [...this.products];
+                this.displayProducts();
+                this.showNotification('Showing all products', 'info');
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        let juitApp;
+        document.addEventListener('DOMContentLoaded', () => {
+            juitApp = new JUITOLXApp();
+        });
+    </script>
+</body>
+</html>
