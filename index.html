@@ -121,6 +121,26 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .animation-delay-200 {
+            animation-delay: 0.2s;
+        }
+        
+        .animation-delay-400 {
+            animation-delay: 0.4s;
+        }
     </style>
 </head>
 <body class="dark bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 min-h-screen text-white">
@@ -228,12 +248,7 @@
             constructor() {
                 this.products = [];
                 this.filteredProducts = [];
-                this.githubConfig = {
-                    owner: 'Pushkarmehra', // Replace with your GitHub username
-                    repo: 'juit-olx-data', // Replace with your repository name
-                    token: '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', // Replace with your GitHub token
-                    branch: 'main'
-                };
+                this.useLocalStorage = true; // Use local storage instead of GitHub
                 
                 this.init();
             }
@@ -241,7 +256,7 @@
             async init() {
                 this.setupEventListeners();
                 this.setupAnimations();
-                await this.loadProductsFromGitHub();
+                await this.loadProducts();
             }
 
             setupEventListeners() {
@@ -319,7 +334,7 @@
                 this.displayProducts();
             }
 
-            async loadProductsFromGitHub() {
+            async loadProducts() {
                 const loadingIndicator = document.getElementById('loadingIndicator');
                 const productContainer = document.getElementById('productContainer');
                 const emptyState = document.getElementById('emptyState');
@@ -329,112 +344,91 @@
                 emptyState.classList.add('hidden');
 
                 try {
-                    const productsFile = await this.getFileFromGitHub('products.json');
-                    const products = JSON.parse(atob(productsFile.content));
-                    this.products = products;
-                    this.filteredProducts = [...products];
-                    
-                    if (products.length === 0) {
-                        emptyState.classList.remove('hidden');
+                    // Load from memory storage (since we can't use localStorage)
+                    if (this.memoryProducts && this.memoryProducts.length > 0) {
+                        this.products = this.memoryProducts;
+                        this.filteredProducts = [...this.products];
+                        this.displayProducts();
                     } else {
+                        // Start with default demo products
+                        this.products = [
+                            {
+                                id: 1,
+                                name: "Gaming Laptop RTX 3060",
+                                price: 85000,
+                                seller: "Alex Kumar",
+                                whatsapp: "919876543210",
+                                condition: "Like New",
+                                description: "High-performance gaming laptop with RTX 3060 graphics card, perfect for gaming and development work.",
+                                imagePath: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=300&fit=crop",
+                                dateAdded: new Date().toISOString()
+                            },
+                            {
+                                id: 2,
+                                name: "Study Table with Storage",
+                                price: 4500,
+                                seller: "Priya Singh",
+                                whatsapp: "919876543211",
+                                condition: "Good",
+                                description: "Wooden study desk with multiple drawers, perfect for dorm rooms and study spaces.",
+                                imagePath: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
+                                dateAdded: new Date().toISOString()
+                            },
+                            {
+                                id: 3,
+                                name: "Mountain Bike Trek",
+                                price: 25000,
+                                seller: "Rahul Sharma",
+                                whatsapp: "919876543212",
+                                condition: "Excellent",
+                                description: "Trek mountain bike in excellent condition, perfect for campus rides and weekend adventures.",
+                                imagePath: "https://images.unsplash.com/photo-1544191696-15693072ce6b?w=500&h=300&fit=crop",
+                                dateAdded: new Date().toISOString()
+                            },
+                            {
+                                id: 4,
+                                name: "iPhone 13 Pro Max",
+                                price: 95000,
+                                seller: "Ankit Verma",
+                                whatsapp: "919876543213",
+                                condition: "Excellent",
+                                description: "iPhone 13 Pro Max 256GB in excellent condition with original box and accessories.",
+                                imagePath: "https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=500&h=300&fit=crop",
+                                dateAdded: new Date().toISOString()
+                            },
+                            {
+                                id: 5,
+                                name: "Engineering Textbooks Set",
+                                price: 3500,
+                                seller: "Meera Gupta",
+                                whatsapp: "919876543214",
+                                condition: "Good",
+                                description: "Complete set of engineering textbooks for CSE 2nd year. All books in good condition.",
+                                imagePath: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=300&fit=crop",
+                                dateAdded: new Date().toISOString()
+                            },
+                            {
+                                id: 6,
+                                name: "Bluetooth Headphones",
+                                price: 2500,
+                                seller: "Rohit Jain",
+                                whatsapp: "919876543215",
+                                condition: "Like New",
+                                description: "Sony WH-CH720N wireless noise canceling headphones. Barely used, excellent sound quality.",
+                                imagePath: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=300&fit=crop",
+                                dateAdded: new Date().toISOString()
+                            }
+                        ];
+                        this.filteredProducts = [...this.products];
+                        this.memoryProducts = [...this.products];
                         this.displayProducts();
                     }
                 } catch (error) {
-                    console.log('No existing products found or error loading:', error);
-                    
-                    // Start with default demo products if GitHub load fails
-                    this.products = [
-                        {
-                            id: 1,
-                            name: "Gaming Laptop RTX 3060",
-                            price: 85000,
-                            seller: "Alex Kumar",
-                            whatsapp: "919876543210",
-                            condition: "Like New",
-                            description: "High-performance gaming laptop with RTX 3060 graphics card, perfect for gaming and development work.",
-                            imagePath: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500&h=300&fit=crop",
-                            dateAdded: new Date().toISOString()
-                        },
-                        {
-                            id: 2,
-                            name: "Study Table with Storage",
-                            price: 4500,
-                            seller: "Priya Singh",
-                            whatsapp: "919876543211",
-                            condition: "Good",
-                            description: "Wooden study desk with multiple drawers, perfect for dorm rooms and study spaces.",
-                            imagePath: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
-                            dateAdded: new Date().toISOString()
-                        },
-                        {
-                            id: 3,
-                            name: "Mountain Bike Trek",
-                            price: 25000,
-                            seller: "Rahul Sharma",
-                            whatsapp: "919876543212",
-                            condition: "Excellent",
-                            description: "Trek mountain bike in excellent condition, perfect for campus rides and weekend adventures.",
-                            imagePath: "https://images.unsplash.com/photo-1544191696-15693072ce6b?w=500&h=300&fit=crop",
-                            dateAdded: new Date().toISOString()
-                        }
-                    ];
-                    this.filteredProducts = [...this.products];
-                    this.displayProducts();
+                    console.error('Error loading products:', error);
+                    this.showNotification('Error loading products', 'error');
                 }
                 
                 loadingIndicator.classList.add('hidden');
-            }
-
-            async getFileFromGitHub(path) {
-                const response = await fetch(`https://api.github.com/repos/${this.githubConfig.owner}/${this.githubConfig.repo}/contents/${path}`, {
-                    headers: {
-                        'Authorization': `token ${this.githubConfig.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`GitHub API error: ${response.status}`);
-                }
-                
-                return await response.json();
-            }
-
-            async saveFileToGitHub(path, content, message) {
-                let sha = null;
-                
-                try {
-                    const existingFile = await this.getFileFromGitHub(path);
-                    sha = existingFile.sha;
-                } catch (e) {
-                    // File doesn't exist, no SHA needed
-                }
-                
-                const body = {
-                    message: message,
-                    content: content,
-                    branch: this.githubConfig.branch
-                };
-                
-                if (sha) {
-                    body.sha = sha;
-                }
-                
-                const response = await fetch(`https://api.github.com/repos/${this.githubConfig.owner}/${this.githubConfig.repo}/contents/${path}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${this.githubConfig.token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`GitHub API error: ${response.status}`);
-                }
-                
-                return await response.json();
             }
 
             displayProducts() {
@@ -465,14 +459,8 @@
                 const productDiv = document.createElement('div');
                 productDiv.className = 'product-card glass bg-dark-800/30 rounded-xl overflow-hidden shadow-xl hover-lift border border-dark-600/30';
                 
-                const imageUrl = product.imagePath.includes('http') 
-                    ? product.imagePath 
-                    : product.imagePath.includes('images/') 
-                        ? `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${product.imagePath}`
-                        : product.imagePath;
-                
                 productDiv.innerHTML = `
-                    <div class="relative h-48 bg-cover bg-center" style="background-image: url('${imageUrl}')">
+                    <div class="relative h-48 bg-cover bg-center" style="background-image: url('${product.imagePath}')">
                         <div class="absolute inset-0 bg-gradient-to-t from-dark-900/50 to-transparent"></div>
                     </div>
                     <div class="p-6">
@@ -589,12 +577,13 @@
                             </div>
                             
                             <div class="space-y-2">
-                                <label for="productImage" class="block text-sm font-medium text-white">Product Image *</label>
-                                <input type="file" id="productImage" name="productImage" 
-                                       accept="image/*" required
-                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                                <label for="productImageUrl" class="block text-sm font-medium text-white">Product Image URL *</label>
+                                <input type="url" id="productImageUrl" name="productImageUrl" required
+                                       placeholder="Paste image URL (e.g., from Google Images, Imgur, etc.)"
+                                       class="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-white placeholder-dark-400">
+                                <p class="text-xs text-dark-400">Tip: Upload your image to a free service like Imgur or use a direct image URL</p>
                                 <div id="imagePreview" class="mt-4 p-4 border-2 border-dashed border-dark-600 rounded-lg text-center bg-dark-700/50">
-                                    <p class="text-dark-400">Upload an image to preview</p>
+                                    <p class="text-dark-400">Paste image URL above to preview</p>
                                 </div>
                             </div>
                             
@@ -631,7 +620,7 @@
                 const closeBtn = modal.querySelector('.close-sell-modal');
                 const cancelBtn = modal.querySelector('.cancel-btn');
                 const form = modal.querySelector('#sellForm');
-                const imageInput = modal.querySelector('#productImage');
+                const imageUrlInput = modal.querySelector('#productImageUrl');
                 const imagePreview = modal.querySelector('#imagePreview');
                 const phoneInput = modal.querySelector('#whatsappNumber');
 
@@ -643,8 +632,8 @@
                 });
 
                 // Image preview functionality
-                imageInput.addEventListener('change', (e) => {
-                    this.handleImagePreview(e.target.files[0], imagePreview);
+                imageUrlInput.addEventListener('input', (e) => {
+                    this.handleImageUrlPreview(e.target.value, imagePreview);
                 });
 
                 // Phone number validation
@@ -664,16 +653,34 @@
                 modal.querySelector('#productName').focus();
             }
 
-            handleImagePreview(file, previewContainer) {
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        previewContainer.innerHTML = `
-                            <img src="${e.target.result}" alt="Preview" class="max-w-full max-h-48 mx-auto rounded-lg shadow-lg mb-2">
-                            <p class="text-dark-300 text-sm">${file.name}</p>
-                        `;
-                    };
-                    reader.readAsDataURL(file);
+            handleImageUrlPreview(url, previewContainer) {
+                if (url && this.isValidImageUrl(url)) {
+                    previewContainer.innerHTML = `
+                        <img src="${url}" alt="Preview" class="max-w-full max-h-48 mx-auto rounded-lg shadow-lg mb-2" 
+                             onerror="this.parentElement.innerHTML='<p class=\\'text-red-400\\'>Invalid image URL</p>'">
+                        <p class="text-dark-300 text-sm">Image preview</p>
+                    `;
+                } else if (url) {
+                    previewContainer.innerHTML = `
+                        <p class="text-yellow-400">Checking image URL...</p>
+                    `;
+                } else {
+                    previewContainer.innerHTML = `
+                        <p class="text-dark-400">Paste image URL above to preview</p>
+                    `;
+                }
+            }
+
+            isValidImageUrl(url) {
+                try {
+                    new URL(url);
+                    return /\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(url) || 
+                           url.includes('unsplash.com') || 
+                           url.includes('imgur.com') ||
+                           url.includes('images.') ||
+                           url.includes('cdn.');
+                } catch {
+                    return false;
                 }
             }
 
@@ -689,12 +696,17 @@
 
                 try {
                     const formData = new FormData(form);
-                    const imageFile = formData.get('productImage');
                     
                     // Validate phone number
                     const phoneNumber = formData.get('whatsappNumber');
                     if (phoneNumber.length < 10 || !/^\d+$/.test(phoneNumber)) {
                         throw new Error('Please enter a valid phone number with country code');
+                    }
+
+                    // Validate image URL
+                    const imageUrl = formData.get('productImageUrl');
+                    if (!this.isValidImageUrl(imageUrl)) {
+                        throw new Error('Please enter a valid image URL');
                     }
 
                     const productData = {
@@ -705,15 +717,14 @@
                         whatsapp: phoneNumber,
                         condition: formData.get('productCondition'),
                         description: formData.get('productDescription'),
+                        imagePath: imageUrl,
                         dateAdded: new Date().toISOString()
                     };
 
-                    // Save to GitHub
-                    await this.saveProductToGitHub(productData, imageFile);
-                    
-                    // Add to local products array
+                    // Save to memory storage
                     this.products.push(productData);
                     this.filteredProducts = [...this.products];
+                    this.memoryProducts = [...this.products]; // Store in memory
                     
                     // Update display
                     this.displayProducts();
@@ -733,50 +744,6 @@
                     btnLoading.classList.add('hidden');
                     btnLoading.classList.remove('flex');
                 }
-            }
-
-            async saveProductToGitHub(productData, imageFile) {
-                try {
-                    // Convert image to base64
-                    const imageBase64 = await this.fileToBase64(imageFile);
-                    
-                    // Save image to GitHub
-                    const imageExtension = imageFile.name.split('.').pop();
-                    const imagePath = `images/product_${productData.id}.${imageExtension}`;
-                    await this.saveFileToGitHub(imagePath, imageBase64, `Add product image: ${productData.name}`);
-                    
-                    // Add image path to product data
-                    productData.imagePath = imagePath;
-                    
-                    // Load existing products
-                    let existingProducts = [];
-                    try {
-                        const productsFile = await this.getFileFromGitHub('products.json');
-                        existingProducts = JSON.parse(atob(productsFile.content));
-                    } catch (e) {
-                        // File doesn't exist yet, start with empty array
-                    }
-                    
-                    // Add new product
-                    existingProducts.push(productData);
-                    
-                    // Save updated products list
-                    const productsJson = JSON.stringify(existingProducts, null, 2);
-                    await this.saveFileToGitHub('products.json', btoa(productsJson), `Add product: ${productData.name}`);
-                    
-                } catch (error) {
-                    console.error('GitHub save error:', error);
-                    throw new Error('Failed to save product to GitHub. Please check your GitHub configuration.');
-                }
-            }
-
-            fileToBase64(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = error => reject(error);
-                });
             }
 
             closeSellModal(modal) {
@@ -819,7 +786,7 @@
 
             async refreshProducts() {
                 this.showNotification('Refreshing products...', 'info');
-                await this.loadProductsFromGitHub();
+                await this.loadProducts();
                 this.showNotification('Products refreshed successfully!', 'success');
             }
 
@@ -854,34 +821,6 @@
         function scrollToTop() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
-        // Add custom CSS for slide animations
-        const slideAnimationCSS = `
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-            
-            .line-clamp-2 {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            
-            .animation-delay-200 {
-                animation-delay: 0.2s;
-            }
-            
-            .animation-delay-400 {
-                animation-delay: 0.4s;
-            }
-        `;
-
-        // Add the CSS to the document
-        const styleSheet = document.createElement('style');
-        styleSheet.textContent = slideAnimationCSS;
-        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>
