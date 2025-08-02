@@ -328,16 +328,19 @@
     </button>
 
     <script>
-        class JUITOLXApp {
-            constructor() {
-                this.products = [];
-                this.filteredProducts = [];
-                this.githubConfig = {
-                    owner: 'Pushkarmehra',
-                    repo: 'DEMO-JUIT-OLX',
-                    token: API_KEY,
-                    branch: 'main'
-                };
+const apiKey = process.env['API-KEY'];
+
+class JUITOLXApp {
+    constructor() {
+        this.products = [];
+        this.filteredProducts = [];
+        this.githubConfig = {
+            owner: 'Pushkarmehra',
+            repo: 'DEMO-JUIT-OLX',
+            token: apiKey,
+            branch: 'main'
+        };
+}
                 
                 this.init();
             }
